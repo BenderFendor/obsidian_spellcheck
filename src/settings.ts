@@ -31,7 +31,7 @@ export class SpellSettingTab extends PluginSettingTab {
         this.plugin.settings.personalWords = Array.from(new Set(value.split(/[,\n]/).map(w => w.trim().toLowerCase()).filter(Boolean)));
         await this.plugin.saveSettings();
       }));
-    this.containerEl.createEl('h3',{text:'Optional contextual grammar checks'});
+    new Setting(this.containerEl).setName('Optional contextual grammar checks').setHeading();
     this.containerEl.createEl('p',{text:'Local spelling never sends notes anywhere. LanguageTool checks send the reviewed text to the configured endpoint only after you click Run grammar check. Self-host LanguageTool for privacy.'});
     new Setting(this.containerEl)
       .setName('Allow LanguageTool checks')
