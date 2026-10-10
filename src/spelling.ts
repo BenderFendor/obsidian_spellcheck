@@ -166,6 +166,8 @@ export class SpellEngine {
     const context=(before+' '+after).toLocaleLowerCase();
     const nearby=new Set(context.match(/[a-z]+/g)||[]);
     const inDomain=/marxis|psycho|philosoph|freud|lacan|material|bourgeois|politic|jung|kant/.test(context);
+    const choices=this.candidates(word);
+    const nearest=Math.min(...choices.map(candidate=>editDistance(word,candidate)));
     const score=(candidate:string):number=>{
       const dist=editDistance(word,candidate),freq=this.frequency.get(candidate)||1;
       let result=Math.log1p(freq)*3-11*dist;
@@ -177,8 +179,8 @@ export class SpellEngine {
           const big=new Set(Array.from({length:word.length-1},(_,i)=>word.slice(i,i+2)));
           let overlap=0;
           for(let i=0;i+1<candidate.length;i++)if(big.has(candidate.slice(i,i+2)))overlap++;
-          if(shared>=2)result+=45;
-          else if(overlap>=3&&word[0]===candidate[0]&&word.slice(-1)===candidate.slice(-1))result+=65;
+          if(shared>=2&&(dist<=3||nearest>2))result+=45;
+          else if(nearest>2&&overlap>=3&&word[0]===candidate[0]&&word.slice(-1)===candidate.slice(-1))result+=65;
         }
       }
       if(candidate[0]===word[0])result+=3;
@@ -189,7 +191,7 @@ export class SpellEngine {
       }
       return result;
     };
-    return this.candidates(word).sort((a,b)=>score(b)-score(a)).slice(0,Math.max(1,Math.min(10,limit))).map(w=>matchCase(token,w));
+    return choices.sort((a,b)=>score(b)-score(a)).slice(0,Math.max(1,Math.min(10,limit))).map(w=>matchCase(token,w));
   }
   check(text:string,limit=250):Correction[]{
     const prose=proseOnly(text);
