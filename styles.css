@@ -1,8 +1,10 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
+.context-spellcheck-typo { text-decoration: underline wavy var(--text-error); text-decoration-skip-ink: none; text-underline-offset: 3px; }
+.context-spellcheck-review { max-width: 760px; }
+.context-spellcheck-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 1em; }
+.context-spellcheck-toolbar span { font-size: var(--font-smallest); color: var(--text-muted); }
+.context-spellcheck-issues { max-height: 60vh; overflow-y: auto; }
+.context-spellcheck-issue { padding: 12px 0; border-top: 1px solid var(--background-modifier-border); }
+.context-spellcheck-issue small { display: block; color: var(--text-muted); margin: 4px 0; }
+.context-spellcheck-context { color: var(--text-muted); margin-bottom: 8px; overflow-wrap: anywhere; }
+.context-spellcheck-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.context-spellcheck-option { margin: 4px; }
