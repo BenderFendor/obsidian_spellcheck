@@ -173,7 +173,13 @@ export class SpellEngine {
         const a=trigrams(word),b=trigrams(candidate);let shared=0;
         for(const gram of a)if(b.has(gram))shared++;
         if(dist<=2)result+=12;
-        else if(shared>=2&&dist<=6)result+=45;
+        else if(dist<=6){
+          const big=new Set(Array.from({length:word.length-1},(_,i)=>word.slice(i,i+2)));
+          let overlap=0;
+          for(let i=0;i+1<candidate.length;i++)if(big.has(candidate.slice(i,i+2)))overlap++;
+          if(shared>=2)result+=45;
+          else if(overlap>=3&&word[0]===candidate[0]&&word.slice(-1)===candidate.slice(-1))result+=65;
+        }
       }
       if(candidate[0]===word[0])result+=3;
       if(candidate.slice(-3)===word.slice(-3))result+=3;
