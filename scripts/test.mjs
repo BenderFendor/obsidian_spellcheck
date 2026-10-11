@@ -60,3 +60,34 @@ assert.equal(engine.check(markdown).filter(x=>x.original==='matieral').length,1)
 engine.setIgnored(['matieral']);
 assert.equal(engine.isCorrect('matieral'),true);
 console.log('Offline spelling, modern 2026 vocabulary, and Markdown-offset regression tests passed ('+cases.length+' challenging typos).');
+
+
+// ReText is bundled entirely offline and its diagnostics preserve Markdown offsets.
+const grammarBuild=await esbuild.build({
+  entryPoints:['src/retext-grammar.ts'],bundle:true,platform:'node',format:'cjs',
+  loader:{'.txt':'text'},write:false,logLevel:'silent'
+});
+const grammarModule={exports:{}};
+new Function('module','exports',grammarBuild.outputFiles[0].text)(grammarModule,grammarModule.exports);
+const {offlineGrammarCheck,grammarIssueAt,DEFAULT_GRAMMAR_RULES}=grammarModule.exports;
+const articleText='He waited a hour before leaving.';
+const articleIssues=offlineGrammarCheck(articleText);
+assert(articleIssues.some(x=>x.original==='a'&&x.suggestions.includes('an')),
+  'ReText should suggest an before hour: '+JSON.stringify(articleIssues));
+for(const issue of articleIssues)assert.equal(articleText.slice(issue.from,issue.to),issue.original);
+assert(offlineGrammarCheck('He told me the the answer.').some(x=>/repeated/i.test(x.message)));
+assert(offlineGrammarCheck('The ATM machine broke.').some(x=>/redundant/i.test(x.message)));
+const grammarMarkdown='---\ntitle: a hour\n---\n'+
+  '~~~md\nThis is a hour.\n~~~\n'+
+  'He waited a hour. '+String.fromCharCode(96)+'a hour'+String.fromCharCode(96);
+const markdownGrammar=offlineGrammarCheck(grammarMarkdown);
+assert.equal(markdownGrammar.filter(x=>x.original==='a').length,1,
+  'Only prose should produce an article warning: '+JSON.stringify(markdownGrammar));
+for(const issue of markdownGrammar)assert.equal(grammarMarkdown.slice(issue.from,issue.to),issue.original);
+const grammarOffset=articleText.indexOf('a hour');
+assert.equal(grammarIssueAt(articleText,grammarOffset)?.original,'a');
+assert.equal(offlineGrammarCheck(articleText,{...DEFAULT_GRAMMAR_RULES,articles:false}).length,0);
+assert.equal(offlineGrammarCheck(articleText,{
+  articles:false,repeatedWords:false,redundantAcronyms:false,passiveVoice:false
+}).length,0);
+console.log('ReText offline grammar rules and Markdown offset regressions passed.');
