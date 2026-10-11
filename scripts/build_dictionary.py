@@ -272,13 +272,24 @@ def main() -> None:
     lock = json.loads(LOCK.read_text(encoding="utf-8"))
     if args.refresh:
         refresh_pins(lock)
+    cache_dir = ROOT / ".cache" / "dictionary-sources"
+    cache_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="spellcheck-dict-") as temporary:
         paths = {}
         for name, meta in lock.items():
-            path = Path(temporary) / (name + (".gz" if meta["url"].endswith(".gz") else ".txt"))
-            digest = download(meta["url"], path)
+            suffix = ".gz" if meta["url"].endswith(".gz") else ".txt"
+            path = Path(temporary) / (name + suffix)
+            cached = cache_dir / (name + suffix)
+            if args.check and cached.is_file():
+                shutil.copyfile(cached, path)
+                digest = sha256(path.read_bytes()).hexdigest()
+                if digest != meta["sha256"]:
+                    raise ValueError(f"Cached {name} does not match pinned SHA-256")
+            else:
+                digest = download(meta["url"], path)
             if args.refresh:
                 meta["sha256"] = digest
+                shutil.copyfile(path, cached)
             elif digest != meta["sha256"]:
                 raise ValueError(f"{name}: SHA-256 mismatch, expected {meta['sha256']}, got {digest}")
             paths[name] = path
