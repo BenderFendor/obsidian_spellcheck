@@ -187,12 +187,26 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
     for key, n in sorted(family_names.items()):
         if n >= 2 and key not in result:
             result[key] = (names[key], min(55, 10 + counts[key]))
-    # Recognize every valid one-word Wikipedia article title without treating
-    # its spelling as a high-confidence correction candidate.
-    for key in sorted(standalone_titles):
-        if key not in result:
-            result[key] = (names[key], 6)
-    stats["wikipedia_standalone"] = len(standalone_titles)
+    # Only a bounded, reproducible subset of single-title names is imported.
+    # Prefer acronyms, internal-capitalization brands, then short proper names.
+    # Importing all 1M+ standalone Wikipedia titles would bloat Obsidian.
+    def priority(key):
+        word = names[key]
+        if word.isupper() and len(word) <= 12:
+            group = 0
+        elif any(c.isupper() for c in word[1:]):
+            group = 1
+        elif len(word) <= 5:
+            group = 2
+        else:
+            group = 3
+        return (group, -counts[key], key)
+
+    extra = sorted((k for k in standalone_titles if k not in result),
+                   key=priority)[:120000]
+    for key in extra:
+        result[key] = (names[key], 6)
+    stats["wikipedia_standalone"] = len(extra)
     stats["wikipedia"] = len(result)
     return result
 
