@@ -1,7 +1,7 @@
 {
   "name": "obsidian-spellcheck",
   "version": "0.1.0",
-  "description": "Offline contextual spelling and optional LanguageTool grammar checking for Obsidian",
+  "description": "Offline dictionary spelling and open-source ReText grammar checking for Obsidian",
   "main": "main.js",
   "type": "module",
   "scripts": {
@@ -24,5 +24,14 @@
     "obsidian": "latest",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.59.1"
+  },
+  "dependencies": {
+    "retext-english": "5.0.0",
+    "retext-indefinite-article": "5.0.0",
+    "retext-passive": "5.0.0",
+    "retext-redundant-acronyms": "5.0.0",
+    "retext-repeated-words": "5.0.0",
+    "retext-stringify": "4.0.0",
+    "unified": "11.0.5"
   }
 }
