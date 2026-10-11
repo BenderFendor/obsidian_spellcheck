@@ -1,6 +1,7 @@
 import { EditorView } from '@codemirror/view';
 import { MarkdownView, Notice, Plugin } from 'obsidian';
 import { SpellEngine } from './spelling';
+import { DEFAULT_GRAMMAR_RULES } from './retext-grammar';
 import { DEFAULT_SETTINGS, SpellSettings, SpellSettingTab } from './settings';
 import { editorSpellcheck, refreshSpellcheck } from './editor';
 import { ReviewModal, SuggestionsModal } from './ui/review';
@@ -10,7 +11,8 @@ export default class ContextSpellcheckPlugin extends Plugin {
   settings!: SpellSettings;
   private engine!: SpellEngine;
   async onload(): Promise<void> {
-    this.settings={...DEFAULT_SETTINGS,...((await this.loadData())||{}) as Partial<SpellSettings>};
+    const saved=((await this.loadData())||{}) as Partial<SpellSettings>;
+    this.settings={...DEFAULT_SETTINGS,...saved,grammarRules:{...DEFAULT_GRAMMAR_RULES,...saved.grammarRules}};
     this.settings.personalWords=Array.isArray(this.settings.personalWords)?this.settings.personalWords:[];
     this.engine=new SpellEngine(this.settings.personalWords);
     this.registerEditorExtension([editorSpellcheck(this.engine,this.settings),captureSpellingContextClick()]);
@@ -26,7 +28,7 @@ export default class ContextSpellcheckPlugin extends Plugin {
       editorCallback:editor=>new SuggestionsModal(this.app,editor,this.engine,word=>this.addWord(word)).open()
     });
     this.registerEvent(this.app.workspace.on('editor-menu',(menu,editor)=>{
-      populateSpellingContextMenu(menu,editor,this.engine,word=>this.addWord(word));
+      populateSpellingContextMenu(menu,editor,this.engine,word=>this.addWord(word),this.settings);
     }));
   }
   async addWord(word:string):Promise<void>{

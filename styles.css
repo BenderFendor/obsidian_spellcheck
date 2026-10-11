@@ -8,3 +8,5 @@
 .context-spellcheck-context { color: var(--text-muted); margin-bottom: 8px; overflow-wrap: anywhere; }
 .context-spellcheck-choices { display: flex; flex-wrap: wrap; gap: 6px; }
 .context-spellcheck-option { margin: 4px; }
+
+.context-spellcheck-grammar { text-decoration: underline wavy var(--text-warning); text-decoration-skip-ink: none; text-underline-offset: 3px; }

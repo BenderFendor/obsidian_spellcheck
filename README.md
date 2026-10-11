@@ -10,8 +10,8 @@ An offline-first spelling checker for long-form Markdown notes. It proposes corr
 - Up to ten ranked replacements for an unknown word, plus a personal dictionary.
 - Wavy underlines in Obsidian's editor. **Right-click a misspelled word** to see up to ten replacements directly in the native editor menu, or add that word to your personal dictionary. Right-click uses the actual clicked word, not a stale caret position. Commands for suggestions at the cursor and review of the selected text/entire note remain available.
 - A review modal that shows each candidate and lets you apply it individually. No automatic or bulk rewriting.
-- Conservative offline grammar checks for repeated words, spacing, selected confusions, and double negatives.
-- Optional LanguageTool grammar checks for richer sentence-level context. Disabled by default. Sends text ONLY when you enable the setting and click Run grammar check.
+- Bundled ReText grammar rules, independent of Harper, cover a/an, repeated words and redundant acronyms, plus optional passive-voice style advice. Legacy conservative checks remain.
+- Every ReText rule is individually configurable and offline. ReText appears in the review dialog and native right-click menu, with optional inline underlines. LanguageTool remains a separate, opt-in server backend.
 
 ## Install (developer build)
 
@@ -24,6 +24,18 @@ Requires Node.js 18+ and npm.
 
 This repository started from the Obsidian starter plugin and is not yet distributed through the community-plugin catalog.
 
+## Offline grammar without Harper
+
+This plugin does not use Harper or depend on its Obsidian plugin. It bundles the MIT-licensed [ReText English parser](https://github.com/retextjs/retext) and [unified](https://github.com/unifiedjs/unified) grammar rules. The existing generated dictionary and SymSpell still handle spelling, so there is no competing spelling dictionary.
+
+Settings > Context Spellcheck provides independent toggles for:
+
+- Article agreement (`retext-indefinite-article`): a/an, including sound-based exceptions.
+- Repeated words (`retext-repeated-words`): accidental repetitions.
+- Redundant acronyms (`retext-redundant-acronyms`): e.g. ATM machine.
+- Passive voice (`retext-passive`): style advice, disabled by default, no automatic fixes.
+
+Local grammar is enabled by default in the review dialog. Right-clicking affected prose also offers a grammar replacement when the rule provides one. Inline grammar underlines are opt-in to avoid extra work while typing. Every replacement requires a click, and existing Markdown masking ensures source code, inline code, links and frontmatter are not rewritten as prose. Warnings without safe replacement suggestions are informational.
 ## Optional contextual grammar
 
 LanguageTool can be self-hosted. Start an instance serving its standard HTTP **/v2/check** endpoint, normally **http://127.0.0.1:8081/v2/check**, or supply another URL you trust. In plugin settings, enable **Allow LanguageTool checks**. Inside the review dialog, click **Run grammar check**. You can apply or ignore each returned suggestion. No background requests or analytics run.
@@ -40,7 +52,7 @@ For large notes, selecting a paragraph or section before review reduces latency.
 
 ## License and dictionary sources
 
-Application code: [0BSD](LICENSE). The bundled word list combines:
+Application code: [0BSD](LICENSE). ReText and the unified grammar dependencies are MIT licensed; see their respective upstream notices. The bundled word list combines:
 
 - TextBlob English spelling frequencies, from [TextBlob](https://github.com/sloria/TextBlob/blob/dev/src/textblob/en/en-spelling.txt); see [TextBlob license](docs/TEXTBLOB-LICENSE.txt). Its source states the counts derive from Project Gutenberg, Wiktionary, the British National Corpus and Peter Norvig's corpus.
 - English en_US Hunspell word stems derived from SCOWL, by Kevin Atkinson, from [LibreOffice dictionaries](https://github.com/LibreOffice/dictionaries/tree/master/en); see [SCOWL copyright and notices](docs/SCOWL-NOTICES.txt).
@@ -64,4 +76,4 @@ The plugin itself makes **no dictionary network requests**. Its release contains
 
 ## Development
 
-Run **npm ci && npm test && npm run build**. The test suite includes difficult spellings from long academic prose, Markdown masking, and stable correction offsets. For live coding, **npm run dev** watches changes. No remote service is required to develop or test the offline checker.
+Run **npm ci && npm test && npm run build && npm run lint**. The test suite includes difficult spellings from long academic prose, Markdown masking, and stable correction offsets. For live coding, **npm run dev** watches changes. No remote service is required to develop or test the offline checker.
