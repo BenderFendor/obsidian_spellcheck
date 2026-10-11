@@ -1,0 +1,17 @@
+{
+  "esdb": {
+    "revision": "7f2f4078354752045ee16a041605686561122185",
+    "url": "https://raw.githubusercontent.com/en-wl/wordlist-diff/7f2f4078354752045ee16a041605686561122185/en_US.txt",
+    "sha256": "45a4dd29b86234fbabce26f33272466bb5572db6fdca1470c4f218e6b666a56d"
+  },
+  "simplewiktionary": {
+    "revision": "2026-09-01",
+    "url": "https://kaikki.org/simplewiktionary/raw-wiktextract-data.jsonl.gz",
+    "sha256": "ea4342525a35eb32e70f5d9945398f06d4f6160af25b0c340fc84662d27efcdf"
+  },
+  "wikipedia": {
+    "revision": "20261010",
+    "url": "https://dumps.wikimedia.org/other/pagetitles/20261010/enwiki-20261010-all-titles-in-ns-0.gz",
+    "sha256": "98c6fa3484121c6a9adbadeb9a4c538adcf86fcc948155c0a6c4b2852bfbc2fe"
+  }
+}

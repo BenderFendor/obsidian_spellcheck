@@ -1,0 +1,76 @@
+name: Refresh offline dictionaries
+
+on:
+  push:
+    branches: [feature/reproducible-upstream-dictionary]
+    paths:
+      - scripts/build_dictionary.py
+      - scripts/test_dictionary_builder.py
+      - src/data/dictionary-sources.json
+      - .github/workflows/dictionary-refresh.yml
+  schedule:
+    - cron: '23 7 5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Prepare recurring update branch
+        if: github.event_name != 'push'
+        run: git checkout -b automation/dictionary-refresh
+      - name: Test builder
+        run: python3 -m unittest discover -s scripts -p 'test_dictionary_builder.py' -v
+      - name: Refresh and pin upstream snapshots
+        run: python3 scripts/build_dictionary.py --refresh
+      - name: Verify locked rebuild
+        run: python3 scripts/build_dictionary.py --check
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run lint
+      - name: Commit generated dictionary and its lock
+        id: commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/data/dictionary-sources.json src/data/modern-lexicon.txt src/data/dictionary-build.json
+          if git diff --cached --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            git commit -m 'chore: update pinned offline dictionary snapshots'
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Update feature branch
+        if: github.event_name == 'push' && steps.commit.outputs.changed == 'true'
+        run: |
+          git fetch origin feature/reproducible-upstream-dictionary
+          git rebase origin/feature/reproducible-upstream-dictionary
+          git push origin HEAD:feature/reproducible-upstream-dictionary
+      - name: Push monthly update branch
+        if: github.event_name != 'push' && steps.commit.outputs.changed == 'true'
+        run: git push --force origin HEAD:automation/dictionary-refresh
+      - name: Open monthly update PR
+        if: github.event_name != 'push' && steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr list --base master --head automation/dictionary-refresh --json number -q '.[0].number' | grep -q '[0-9]' ||
+            gh pr create --base master --head automation/dictionary-refresh \
+              --title 'Update pinned offline dictionaries' \
+              --body 'Rebuilds the bundled dictionary from current ESDB, Simple English Wiktionary and dated Wikipedia title snapshots. Includes source revisions and SHA-256 checksums. Review added vocabulary before merging.'
