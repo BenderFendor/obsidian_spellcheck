@@ -34,10 +34,10 @@ jobs:
       - name: Prepare recurring update branch
         if: github.event_name != 'push'
         run: git checkout -b automation/dictionary-refresh
-      - name: Refresh and pin upstream snapshots
-        run: python3 scripts/build_dictionary.py --refresh
       - name: Test builder
         run: python3 -m unittest discover -s scripts -p 'test_dictionary_builder.py' -v
+      - name: Refresh and pin upstream snapshots
+        run: python3 scripts/build_dictionary.py --refresh
       - name: Verify locked rebuild
         run: python3 scripts/build_dictionary.py --check
       - run: npm ci
