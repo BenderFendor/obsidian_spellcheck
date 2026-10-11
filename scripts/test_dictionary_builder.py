@@ -24,7 +24,8 @@ class DictionaryBuilderTest(unittest.TestCase):
             with gzip.open(path, "wt", encoding="utf-8") as file:
                 file.write("Yahya_Sinwar\nMohammed_Sinwar\nBenjamin_Netanyahu\n"
                            "Benjamin_Netanyahu_(politician)\nHamas\nHistory_of_Hamas\n"
-                           "Hamas_and_Hezbollah\nList_of_Hamas_members\n"\n                           "Qwen\nUNRWA\n")
+                           "Hamas_and_Hezbollah\nList_of_Hamas_members\n"
+                           "Qwen\nUNRWA\n")
             counts = builder.Counter()
             words = builder.wiki_words(path, counts, minimum=2)
             self.assertIn("sinwar", words)
