@@ -23,6 +23,13 @@ import tempfile
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
+USER_AGENT = "ObsidianSpellcheckDictionaryBot/1.0 (https://github.com/BenderFendor/obsidian_spellcheck)"
+
+
+def open_source(url: str, timeout: int = 30):
+    return urlopen(Request(url, headers={"User-Agent": USER_AGENT}), timeout=timeout)
+
+
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = ROOT / "src/data/dictionary-sources.json"
 OUTPUT = ROOT / "src/data/modern-lexicon.txt"
@@ -67,7 +74,7 @@ def download(url: str, dest: Path) -> str:
                            "https://kaikki.org/simplewiktionary/")):
         raise ValueError("Unapproved dictionary URL: " + url)
     digest = sha256()
-    request = Request(url, headers={"User-Agent": "obsidian-spellcheck-dictionary-builder/1.0"})
+    request = Request(url, headers={"User-Agent": USER_AGENT})
     with closing(urlopen(request, timeout=120)) as response, dest.open("wb") as out:
         total = 0
         while chunk := response.read(1024 * 1024):
@@ -82,7 +89,7 @@ def download(url: str, dest: Path) -> str:
 def refresh_pins(lock: dict) -> None:
     # One immutable Git commit for English Speller Database (ESDB) wordlists.
     request = Request("https://api.github.com/repos/en-wl/wordlist-diff/commits/diff",
-                      headers={"User-Agent": "obsidian-spellcheck-dictionary-builder/1.0"})
+                      headers={"User-Agent": USER_AGENT})
     with closing(urlopen(request, timeout=30)) as response:
         lock["esdb"]["revision"] = json.load(response)["sha"]
     lock["esdb"]["url"] = (
@@ -92,7 +99,7 @@ def refresh_pins(lock: dict) -> None:
 
     # Pin a dated daily English Wikipedia main-namespace title export.
     index_url = "https://dumps.wikimedia.org/other/pagetitles/"
-    with closing(urlopen(index_url, timeout=30)) as response:
+    with closing(open_source(index_url)) as response:
         index = response.read().decode("utf-8")
     days = re.findall(r'href="(20\d{6})/"', index)
     if not days:
@@ -106,7 +113,7 @@ def refresh_pins(lock: dict) -> None:
     # Kaikki provides a much smaller Simple English Wiktionary JSONL snapshot.
     # Parse its advertised download link instead of guessing changing URLs.
     page = "https://kaikki.org/simplewiktionary/rawdata.html"
-    with closing(urlopen(page, timeout=30)) as response:
+    with closing(open_source(page)) as response:
         html = response.read().decode("utf-8")
     parser = ExtractLinks()
     parser.feed(html)
