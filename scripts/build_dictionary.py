@@ -147,10 +147,26 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
     counts = Counter()
     family_names = Counter()
     standalone_titles = set()
+    topical_names = set()
     names: dict[str, str] = {}
     with gzip.open(path, "rt", encoding="utf-8", errors="replace") as file:
         for raw in file:
             title = raw.rstrip("\n").replace("_", " ")
+            # Many modern names only appear as disambiguated Wikipedia titles,
+            # e.g. "Bluesky (social network)". Retain the article's core name
+            # and use the qualifier as a deterministic confidence signal.
+            if title.endswith(")") and " (" in title:
+                stem, qualifier = title.rsplit(" (", 1)
+                category = qualifier[:-1].casefold()
+                if category in {
+                    "social network", "social media", "technology company",
+                    "software", "application", "chatbot", "language model",
+                    "artificial intelligence", "website", "internet platform",
+                    "political organization", "political party", "organization",
+                    "company", "online service", "platform"
+                } and valid(stem):
+                    topical_names.add(stem.casefold())
+                title = stem
             if any(char in title for char in "()[]/:") or len(title) > 100:
                 continue
             parts = title.split()
@@ -208,6 +224,12 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
                    key=priority)[:120000]
     for key in extra:
         result[key] = (names[key], 6)
+    # Common encyclopedic topic qualifiers are stronger evidence than
+    # arbitrary title capitalization; accept these names even past the cap.
+    for key in sorted(topical_names):
+        if key in names and key not in result:
+            result[key] = (names[key], 25)
+    stats["wikipedia_topical"] = len(topical_names)
     stats["wikipedia_standalone"] = len(extra)
     stats["wikipedia"] = len(result)
     return result
