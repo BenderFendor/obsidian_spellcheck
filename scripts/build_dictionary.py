@@ -192,14 +192,16 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
     # Importing all 1M+ standalone Wikipedia titles would bloat Obsidian.
     def priority(key):
         word = names[key]
-        if word.isupper() and len(word) <= 12:
+        if len(word) <= 4:
             group = 0
-        elif any(c.isupper() for c in word[1:]):
+        elif word.isupper() and len(word) <= 12:
             group = 1
-        elif len(word) <= 5:
+        elif any(c.isupper() for c in word[1:]):
             group = 2
-        else:
+        elif len(word) <= 6:
             group = 3
+        else:
+            group = 4
         return (group, -counts[key], key)
 
     extra = sorted((k for k in standalone_titles if k not in result),
