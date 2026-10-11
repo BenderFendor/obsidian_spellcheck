@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LOCK = ROOT / "src/data/dictionary-sources.json"
 OUTPUT = ROOT / "src/data/modern-lexicon.txt"
 REPORT = ROOT / "src/data/dictionary-build.json"
-LETTERS = re.compile(r"^[A-Za-z][A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,31}$")
+LETTERS = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ]{3,32}$")
 BLOCKED = re.compile(r"[0-9:/\\.()\[\]{}|=+*<>#@]|(?:^|-)(?:wiki|list|category)(?:$|-)", re.I)
 BAD_TAGS = {"misspelling", "nonstandard", "obsolete", "archaic", "historical",
             "rare", "dated", "humorous", "eye dialect", "alternative"}
