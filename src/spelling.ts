@@ -104,6 +104,7 @@ function matchCase(source:string,candidate:string):string{
 export class SpellEngine {
   private frequency=new Map<string,number>();
   private modernWords=new Set<string>();
+  private modernBuckets=new Map<string,string[]>();
   private preferredCase=new Map<string,string>();
   private deletes:Map<string,string[]>|null=null;
   private gramIndex:Map<string,string[]>|null=null;
@@ -120,6 +121,10 @@ export class SpellEngine {
       if(!match)continue;
       const spelling=match[1]!,word=spelling.toLocaleLowerCase('en-US');
       this.modernWords.add(word);
+      const bucket=word[0]+':'+word.length;
+      const entries=this.modernBuckets.get(bucket);
+      if(entries)entries.push(word);
+      else this.modernBuckets.set(bucket,[word]);
       this.frequency.set(word,Math.max(this.frequency.get(word)||0,Number(match[2])));
       if(spelling!==word)this.preferredCase.set(word,spelling);
     }
@@ -145,7 +150,7 @@ export class SpellEngine {
     if(this.deletes)return;
     this.deletes=new Map();
     for(const [word,count] of this.frequency){
-      if(count<2||word.length>28||word.includes("'"))continue;
+      if(count<2||word.length>28||word.includes("'")||(this.modernWords.has(word)&&count<30))continue;
       for(const deletion of deletions(word)){
         const array=this.deletes.get(deletion);
         if(array)array.push(word);
@@ -157,7 +162,7 @@ export class SpellEngine {
     if(this.gramIndex)return;
     this.gramIndex=new Map();
     for(const word of this.frequency.keys()){
-      if(word.length<4||word.length>32||word.includes("'"))continue;
+      if(word.length<4||word.length>32||word.includes("'")||(this.modernWords.has(word)&&(this.frequency.get(word)||0)<30))continue;
       for(const gram of trigrams(word)){
         const array=this.gramIndex.get(gram);
         if(array)array.push(word);
@@ -186,12 +191,13 @@ export class SpellEngine {
         if(editDistance(word,candidate)<=limit)found.add(candidate);
       }
     }
-    // New names and terms can be very different from their misspellings.
-    // Check the small modern supplement separately without growing the 62k-word index.
-    if(word.length>=4)for(const term of this.modernWords){
-      if(Math.abs(term.length-word.length)>4||term[0]!==word[0])continue;
-      const maxDistance=Math.min(5,Math.max(2,Math.ceil(word.length/2)));
-      if(editDistance(word,term)<=maxDistance)found.add(term);
+    // The generated dataset is much larger than the original hand-curated
+    // supplement. Limit expensive fuzzy comparison to first-letter/length bins.
+    if(word.length>=4)for(let length=Math.max(3,word.length-4);length<=Math.min(32,word.length+4);length++){
+      for(const term of this.modernBuckets.get(word[0]+':'+length)||[]){
+        const maxDistance=Math.min(5,Math.max(2,Math.ceil(word.length/2)));
+        if(editDistance(word,term)<=maxDistance)found.add(term);
+      }
     }
     // Search specialist vocabulary even when a word has many errors.
     for(const term of SPECIAL)if(Math.abs(term.length-word.length)<=5&&editDistance(word,term)<=6)found.add(term);
