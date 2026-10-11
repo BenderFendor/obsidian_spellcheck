@@ -2,6 +2,7 @@ import { App, Editor, Modal, Notice } from 'obsidian';
 import { Correction, SpellEngine, wordAtProse } from '../spelling';
 import type { SpellSettings } from '../settings';
 import { languageToolCheck } from '../grammar';
+import { offlineGrammarCheck } from '../retext-grammar';
 
 /** Reviewable replacements; changes only after a direct click. */
 export class ReviewModal extends Modal {
@@ -30,10 +31,16 @@ export class ReviewModal extends Modal {
       remote.onclick=()=>{void this.runLanguageTool(remote);};
     }
     toolbar.createSpan({text:this.settings.languageToolEnabled?
-      'Offline spelling. Grammar check sends the reviewed text to your configured endpoint.':
-      'Offline spelling. Enable LanguageTool in settings for additional context-aware grammar suggestions.'});
+      'Spelling and ReText grammar stay offline. LanguageTool requires clicking Run grammar check and sends text to your endpoint.':
+      'Spelling and ReText grammar run locally. Toggle individual grammar rules in plugin settings.'});
     if(this.status)this.contentEl.createEl('p',{text:this.status});
-    this.issues=this.engine.check(this.initialText);
+    const spelling=this.engine.check(this.initialText);
+    const local=this.settings.offlineGrammarEnabled
+      ? offlineGrammarCheck(this.initialText,this.settings.grammarRules) : [];
+    // Prefer ReText over overlapping legacy grammar heuristics, but keep
+    // spellcheck diagnostics and independent grammar suggestions.
+    this.issues=[...spelling.filter(issue=>!local.some(g=>
+      issue.source==='grammar'&&issue.from<g.to&&issue.to>g.from)),...local];
     const key=(x:Correction)=>x.source+':'+x.from+':'+x.to+':'+x.original;
     const merged=[...this.issues,...this.remoteIssues].filter(x=>!this.skipped.has(key(x)))
       .sort((a,b)=>a.from-b.from||a.to-b.to);
