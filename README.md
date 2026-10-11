@@ -60,7 +60,7 @@ The word-list attribution and relevant permission notices must be retained if re
 - `python3 -m unittest discover -s scripts -p 'test_dictionary_builder.py'`: run unit tests with local source fixtures.
 - The `Refresh offline dictionaries` GitHub Action refreshes monthly and opens a review PR with the source and wordlist diff. Merging is manual. If the repository disallows Actions-generated pull requests, enable that option in GitHub Actions settings.
 
-The plugin itself makes **no dictionary network requests**. Its release contains the generated supplement and can check text fully offline. Wikipedia article titles are not independently verified given names or spelling judgments. Only consistently capitalized tokens with multiple article-title appearances are included, and the size is bounded. This is a best-effort supplement, not guaranteed coverage of every name or word; the personal dictionary remains available.
+The plugin itself makes **no dictionary network requests**. Its release contains the generated supplement and can check text fully offline. Wikipedia article titles are not independently verified given names or spelling judgments. Frequent article-title tokens and surnames corroborated by multiple biographies are preferred for suggestions. Single-word article titles are included as low-confidence recognition-only vocabulary, and cannot dominate candidate ranking. That broadens modern name coverage but may also accept some unusual or erroneous title spellings. This is a best-effort supplement, not guaranteed coverage of every name or word; the personal dictionary remains available.
 
 ## Development
 
