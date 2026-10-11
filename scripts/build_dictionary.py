@@ -282,7 +282,11 @@ def main() -> None:
             cached = cache_dir / (name + suffix)
             if args.check and cached.is_file():
                 shutil.copyfile(cached, path)
-                digest = sha256(path.read_bytes()).hexdigest()
+                hasher = sha256()
+                with path.open("rb") as binary:
+                    while chunk := binary.read(1024 * 1024):
+                        hasher.update(chunk)
+                digest = hasher.hexdigest()
                 if digest != meta["sha256"]:
                     raise ValueError(f"Cached {name} does not match pinned SHA-256")
             else:
