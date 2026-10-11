@@ -155,7 +155,7 @@ export class SpellEngine {
     if(this.deletes)return;
     this.deletes=new Map();
     for(const [word,count] of this.frequency){
-      if(count<2||word.length>28||word.includes("'")||(this.modernWords.has(word)&&count<30))continue;
+      if(count<2||word.length>28||word.includes("'")||(this.modernWords.has(word)&&count<=55))continue;
       for(const deletion of deletions(word)){
         const array=this.deletes.get(deletion);
         if(array)array.push(word);
@@ -167,7 +167,7 @@ export class SpellEngine {
     if(this.gramIndex)return;
     this.gramIndex=new Map();
     for(const word of this.frequency.keys()){
-      if(word.length<4||word.length>32||word.includes("'")||(this.modernWords.has(word)&&(this.frequency.get(word)||0)<30))continue;
+      if(word.length<4||word.length>32||word.includes("'")||(this.modernWords.has(word)&&(this.frequency.get(word)||0)<=55))continue;
       for(const gram of trigrams(word)){
         const array=this.gramIndex.get(gram);
         if(array)array.push(word);
