@@ -58,7 +58,10 @@ jobs:
           fi
       - name: Update feature branch
         if: github.event_name == 'push' && steps.commit.outputs.changed == 'true'
-        run: git push origin HEAD:feature/reproducible-upstream-dictionary
+        run: |
+          git fetch origin feature/reproducible-upstream-dictionary
+          git rebase origin/feature/reproducible-upstream-dictionary
+          git push origin HEAD:feature/reproducible-upstream-dictionary
       - name: Push monthly update branch
         if: github.event_name != 'push' && steps.commit.outputs.changed == 'true'
         run: git push --force origin HEAD:automation/dictionary-refresh
