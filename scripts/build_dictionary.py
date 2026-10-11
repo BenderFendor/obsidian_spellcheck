@@ -227,8 +227,8 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
     # Common encyclopedic topic qualifiers are stronger evidence than
     # arbitrary title capitalization; accept these names even past the cap.
     for key in sorted(topical_names):
-        if key in names and key not in result:
-            result[key] = (names[key], 25)
+        if key in names:
+            result[key] = (names[key], max(result.get(key, (names[key], 0))[1], 25))
     stats["wikipedia_topical"] = len(topical_names)
     stats["wikipedia_standalone"] = len(extra)
     stats["wikipedia"] = len(result)
