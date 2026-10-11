@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import * as esbuild from 'esbuild';
+import { createRequire } from 'node:module';
 
 const build=await esbuild.build({
   entryPoints:['src/spelling.ts'],bundle:true,platform:'node',format:'cjs',
@@ -68,7 +69,7 @@ const grammarBuild=await esbuild.build({
   loader:{'.txt':'text'},write:false,logLevel:'silent'
 });
 const grammarModule={exports:{}};
-new Function('module','exports',grammarBuild.outputFiles[0].text)(grammarModule,grammarModule.exports);
+new Function('require','module','exports',grammarBuild.outputFiles[0].text)(createRequire(import.meta.url),grammarModule,grammarModule.exports);
 const {offlineGrammarCheck,grammarIssueAt,DEFAULT_GRAMMAR_RULES}=grammarModule.exports;
 const articleText='He waited a hour before leaving.';
 const articleIssues=offlineGrammarCheck(articleText);
