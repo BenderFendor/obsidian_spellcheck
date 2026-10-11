@@ -40,12 +40,13 @@ export function populateSpellingContextMenu(
   if(view)clickedWords.delete(view);
   const text=editor.getValue();
   // Keyboard context menus still use the current editor caret.
-  const target=clicked&&Date.now()-clicked.capturedAt<1500
-    ? clicked : wordAtProse(text,editor.posToOffset(editor.getCursor()));
+  const useClick=Boolean(clicked&&Date.now()-clicked.capturedAt<1500);
+  const target=useClick ? clicked : wordAtProse(text,editor.posToOffset(editor.getCursor()));
+  const targetOffset=useClick&&clicked ? clicked.offset : editor.posToOffset(editor.getCursor());
   if(!target||text.slice(target.from,target.to)!==target.word)return;
   const {from,to,word}=target;
   const grammar=settings.offlineGrammarEnabled
-    ? grammarIssueAt(text,clicked?.offset??editor.posToOffset(editor.getCursor()),settings.grammarRules)
+    ? grammarIssueAt(text,targetOffset,settings.grammarRules)
     : undefined;
   const spelling=!engine.isCorrect(word);
   if(!grammar&&!spelling)return;
