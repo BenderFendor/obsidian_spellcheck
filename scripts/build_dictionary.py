@@ -145,6 +145,7 @@ def source_words(path: Path, stats: Counter) -> dict[str, tuple[str, int]]:
 
 def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
     counts = Counter()
+    family_names = Counter()
     names: dict[str, str] = {}
     with gzip.open(path, "rt", encoding="utf-8", errors="replace") as file:
         for raw in file:
@@ -154,6 +155,13 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
             parts = title.split()
             if not 1 <= len(parts) <= 5:
                 continue
+            # Proper-family-name extraction is separate from global title
+            # frequency. Rare contemporary surnames can be absent from the
+            # top-K generic words despite appearing in multiple biographies.
+            if 2 <= len(parts) <= 3 and all(
+                valid(p) and p[0].isupper() for p in parts
+            ):
+                family_names[parts[-1].casefold()] += 1
             # Only reliably capitalized words from title-cased article names.
             # Do not index every lower-case Wikipedia word or digits.
             for word in parts:
@@ -166,8 +174,14 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
         ((key, n) for key, n in counts.items() if n >= minimum),
         key=lambda item: (-item[1], item[0]),
     )[:maximum]
-    stats["wikipedia"] = len(selected)
-    return {key: (names[key], min(55, 10 + n)) for key, n in selected}
+    # Frequency caps are for generic titles, not established surnames.
+    # Include surnames occurring in two independent person-like titles.
+    result = {key: (names[key], min(55, 10 + n)) for key, n in selected}
+    for key, n in sorted(family_names.items()):
+        if n >= 2 and key not in result:
+            result[key] = (names[key], min(55, 10 + counts[key]))
+    stats["wikipedia"] = len(result)
+    return result
 
 
 def wiktionary_words(path: Path, stats: Counter) -> dict[str, tuple[str, int]]:
