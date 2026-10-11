@@ -1,92 +1,52 @@
-# Obsidian Sample Plugin
+# Context Spellcheck for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+An offline-first spelling checker for long-form Markdown notes. It proposes corrections without changing your prose automatically. Designed to recognize specialist terms such as Marxism, psychoanalysis, bourgeoisie, and materialism.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+- About 62,000 bundled words from a frequency list and the en_US SCOWL/Hunspell dictionary. No network or model download is needed for basic spelling.
+- SymSpell-style symmetric delete index (edit distance 2) for fast common typos, followed by an n-gram/Damerau-Levenshtein fallback for harder misspellings.
+- Contextual reranking using surrounding prose and a small academic/philosophy vocabulary. This is heuristic context scoring, not a neural language model.
+- Up to ten ranked replacements for an unknown word, plus a personal dictionary.
+- Wavy underlines in Obsidian's editor and commands for suggestions at the cursor or review of the selected text/entire note.
+- A review modal that shows each candidate and lets you apply it individually. No automatic or bulk rewriting.
+- Conservative offline grammar checks for repeated words, spacing, selected confusions, and double negatives.
+- Optional LanguageTool grammar checks for richer sentence-level context. Disabled by default. Sends text ONLY when you enable the setting and click Run grammar check.
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+## Install (developer build)
 
-## First time developing plugins?
+Requires Node.js 18+ and npm.
 
-Quick starting guide for new plugin devs:
+1. Clone the repository and run **npm ci**, **npm test**, then **npm run build**.
+2. Copy the files **main.js**, **manifest.json**, and **styles.css** into your vault folder **.obsidian/plugins/obsidian-spellcheck/**.
+3. Reload Obsidian, enable **Context Spellcheck** in **Settings > Community plugins**.
+4. Run **Review spelling and grammar in selection or note** from the command palette. Select a passage beforehand to limit review to that passage. Use **Show spelling suggestions at cursor** for ten alternatives.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+This repository started from the Obsidian starter plugin and is not yet distributed through the community-plugin catalog.
 
-## Releasing new releases
+## Optional contextual grammar
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+LanguageTool can be self-hosted. Start an instance serving its standard HTTP **/v2/check** endpoint, normally **http://127.0.0.1:8081/v2/check**, or supply another URL you trust. In plugin settings, enable **Allow LanguageTool checks**. Inside the review dialog, click **Run grammar check**. You can apply or ignore each returned suggestion. No background requests or analytics run.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+For a remote endpoint, the reviewed note text or selection will leave your machine when you click the button. Do not configure a third-party service for private notes unless you accept that disclosure. LanguageTool corrections are proposals and should be evaluated for accuracy, especially around names, citations, quotations, and specialized terms.
 
-## Adding your plugin to the community plugin list
+## Accuracy and limitations
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+The corpus includes frequent English vocabulary and a SCOWL word list, plus a small specialist vocabulary. It is not exhaustive. The offline word recognizer uses conservative morphology heuristics and may propose false positives/negatives. It does not understand philosophical arguments, grammar as comprehensively as LanguageTool, or nuanced semantic mistakes such as a plausible but contextually wrong word. Context-based candidate ranking does not make a neural semantic model.
 
-## How to use
+The plugin masks common Markdown syntax including YAML frontmatter, fenced and inline code, wikilinks, URLs, Markdown links, and tags. Some exotic embedded syntaxes may still be scanned. Corrections are applied by checked text offsets, and review stops if the note has changed externally to avoid editing the wrong range.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+For large notes, selecting a paragraph or section before review reduces latency. The dictionary and spelling index operate locally, with candidate indexes constructed on demand.
 
-## Manually installing the plugin
+## License and dictionary sources
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+Application code: [0BSD](LICENSE). The bundled word list combines:
 
-## Improve code quality with eslint
+- TextBlob English spelling frequencies, from [TextBlob](https://github.com/sloria/TextBlob/blob/dev/src/textblob/en/en-spelling.txt); see [TextBlob license](docs/TEXTBLOB-LICENSE.txt). Its source states the counts derive from Project Gutenberg, Wiktionary, the British National Corpus and Peter Norvig's corpus.
+- English en_US Hunspell word stems derived from SCOWL, by Kevin Atkinson, from [LibreOffice dictionaries](https://github.com/LibreOffice/dictionaries/tree/master/en); see [SCOWL copyright and notices](docs/SCOWL-NOTICES.txt).
 
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+The word-list attribution and relevant permission notices must be retained if redistributing the corpus.
 
-## Funding URL
+## Development
 
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
-```
-
-If you have multiple URLs, you can also do:
-
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
-```
-
-## API Documentation
-
-See https://docs.obsidian.md
+Run **npm ci && npm test && npm run build**. The test suite includes difficult spellings from long academic prose, Markdown masking, and stable correction offsets. For live coding, **npm run dev** watches changes. No remote service is required to develop or test the offline checker.
