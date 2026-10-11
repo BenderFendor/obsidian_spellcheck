@@ -146,6 +146,7 @@ def source_words(path: Path, stats: Counter) -> dict[str, tuple[str, int]]:
 def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
     counts = Counter()
     family_names = Counter()
+    standalone_titles = set()
     names: dict[str, str] = {}
     with gzip.open(path, "rt", encoding="utf-8", errors="replace") as file:
         for raw in file:
@@ -155,6 +156,12 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
             parts = title.split()
             if not 1 <= len(parts) <= 5:
                 continue
+            # Article titles consisting of one word are an independent source
+            # of organization, technology and personal names (UNRWA, Qwen,
+            # etc.). Treat them as recognition-only entries with low weights
+            # unless other articles corroborate the same token.
+            if len(parts) == 1 and valid(parts[0]) and parts[0][0].isupper():
+                standalone_titles.add(parts[0].casefold())
             # Proper-family-name extraction is separate from global title
             # frequency. Rare contemporary surnames can be absent from the
             # top-K generic words despite appearing in multiple biographies.
@@ -180,6 +187,12 @@ def wiki_words(path: Path, stats: Counter, minimum=2, maximum=65000):
     for key, n in sorted(family_names.items()):
         if n >= 2 and key not in result:
             result[key] = (names[key], min(55, 10 + counts[key]))
+    # Recognize every valid one-word Wikipedia article title without treating
+    # its spelling as a high-confidence correction candidate.
+    for key in sorted(standalone_titles):
+        if key not in result:
+            result[key] = (names[key], 6)
+    stats["wikipedia_standalone"] = len(standalone_titles)
     stats["wikipedia"] = len(result)
     return result
 
