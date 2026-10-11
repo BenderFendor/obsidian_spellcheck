@@ -4,11 +4,11 @@ An offline-first spelling checker for long-form Markdown notes. It proposes corr
 
 ## Features
 
-- About 62,000 bundled words from a frequency list and the en_US SCOWL/Hunspell dictionary. No network or model download is needed for basic spelling.
+- About 62,000 bundled English words, plus a curated offline supplement of 500+ contemporary proper names, organizations, technologies and current terminology (updated October 2026). No network or model download is needed for basic spelling.
 - SymSpell-style symmetric delete index (edit distance 2) for fast common typos, followed by an n-gram/Damerau-Levenshtein fallback for harder misspellings.
 - Contextual reranking using surrounding prose and a small academic/philosophy vocabulary. This is heuristic context scoring, not a neural language model.
 - Up to ten ranked replacements for an unknown word, plus a personal dictionary.
-- Wavy underlines in Obsidian's editor and commands for suggestions at the cursor or review of the selected text/entire note.
+- Wavy underlines in Obsidian's editor. **Right-click a misspelled word** to see up to ten replacements directly in the native editor menu, or add that word to your personal dictionary. Right-click uses the actual clicked word, not a stale caret position. Commands for suggestions at the cursor and review of the selected text/entire note remain available.
 - A review modal that shows each candidate and lets you apply it individually. No automatic or bulk rewriting.
 - Conservative offline grammar checks for repeated words, spacing, selected confusions, and double negatives.
 - Optional LanguageTool grammar checks for richer sentence-level context. Disabled by default. Sends text ONLY when you enable the setting and click Run grammar check.
@@ -20,7 +20,7 @@ Requires Node.js 18+ and npm.
 1. Clone the repository and run **npm ci**, **npm test**, then **npm run build**.
 2. Copy the files **main.js**, **manifest.json**, and **styles.css** into your vault folder **.obsidian/plugins/obsidian-spellcheck/**.
 3. Reload Obsidian, enable **Context Spellcheck** in **Settings > Community plugins**.
-4. Run **Review spelling and grammar in selection or note** from the command palette. Select a passage beforehand to limit review to that passage. Use **Show spelling suggestions at cursor** for ten alternatives.
+4. Right-click an underlined word in editing mode to choose a correction. Or run **Review spelling and grammar in selection or note** from the command palette. Select a passage beforehand to limit review. Use **Show spelling suggestions at cursor** for up to ten alternatives.
 
 This repository started from the Obsidian starter plugin and is not yet distributed through the community-plugin catalog.
 
@@ -32,7 +32,7 @@ For a remote endpoint, the reviewed note text or selection will leave your machi
 
 ## Accuracy and limitations
 
-The corpus includes frequent English vocabulary and a SCOWL word list, plus a small specialist vocabulary. It is not exhaustive. The offline word recognizer uses conservative morphology heuristics and may propose false positives/negatives. It does not understand philosophical arguments, grammar as comprehensively as LanguageTool, or nuanced semantic mistakes such as a plausible but contextually wrong word. Context-based candidate ranking does not make a neural semantic model.
+The corpus includes frequent English vocabulary, SCOWL words, specialist vocabulary and a versioned contemporary supplement. It is not exhaustive. The offline word recognizer uses conservative morphology heuristics and may propose false positives/negatives. It does not understand philosophical arguments, grammar as comprehensively as LanguageTool, or nuanced semantic mistakes such as a plausible but contextually wrong word. Context-based candidate ranking does not make a neural semantic model.
 
 The plugin masks common Markdown syntax including YAML frontmatter, fenced and inline code, wikilinks, URLs, Markdown links, and tags. Some exotic embedded syntaxes may still be scanned. Corrections are applied by checked text offsets, and review stops if the note has changed externally to avoid editing the wrong range.
 
@@ -44,8 +44,13 @@ Application code: [0BSD](LICENSE). The bundled word list combines:
 
 - TextBlob English spelling frequencies, from [TextBlob](https://github.com/sloria/TextBlob/blob/dev/src/textblob/en/en-spelling.txt); see [TextBlob license](docs/TEXTBLOB-LICENSE.txt). Its source states the counts derive from Project Gutenberg, Wiktionary, the British National Corpus and Peter Norvig's corpus.
 - English en_US Hunspell word stems derived from SCOWL, by Kevin Atkinson, from [LibreOffice dictionaries](https://github.com/LibreOffice/dictionaries/tree/master/en); see [SCOWL copyright and notices](docs/SCOWL-NOTICES.txt).
+- The supplemental list in [src/data/modern-lexicon.txt](src/data/modern-lexicon.txt) is a manually curated project addition. Names are recognition and spelling entries, not endorsements or editorial claims.
 
 The word-list attribution and relevant permission notices must be retained if redistributing the corpus.
+
+## Keeping the dictionary current
+
+Update `src/data/modern-lexicon.txt` by adding a single word or name and a ranking weight per line, e.g. `Netanyahu 90`, `Sinwar 90` or `ChatGPT 65`. The bundled dictionary is case-insensitive for recognition and preserves the canonical spelling for suggestions. Rebuild with `npm test && npm run build`. Do not use automatic network word downloads at plugin runtime. The dated supplement is not a comprehensive list of 2026 terminology. Unrecognized terms can be added immediately to the personal dictionary in plugin settings or the editor context menu.
 
 ## Development
 
