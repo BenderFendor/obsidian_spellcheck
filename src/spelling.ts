@@ -1,4 +1,5 @@
 import lexicon from './data/lexicon.txt';
+import modernLexicon from './data/modern-lexicon.txt';
 
 export interface Correction {
   from: number;
@@ -24,6 +25,14 @@ const COMMON_PAIRS: Record<string, string[]> = {
   individual: ['psychology','development'],
   class: ['struggle','relations','consciousness']
 };
+// High-confidence typo variants of commonly used contemporary names.
+const KNOWN_TYPOS: Record<string, string> = {
+  netyahuhu: 'netanyahu',
+  netyahoo: 'netanyahu',
+  netanyhu: 'netanyahu',
+  netanjahu: 'netanyahu',
+  sinawr: 'sinwar'
+};
 const CONTRACTIONS = /(?:n't|'s|'re|'ve|'ll|'d|'m)$/;
 function masked(fragment: string): string { return fragment.replace(/[^\n]/g,' '); }
 /** Mask Markdown constructs while preserving UTF-16 offsets. */
@@ -37,6 +46,19 @@ export function proseOnly(text: string): string {
   result = result.replace(/(?:^|\s)#[\p{L}\p{N}_/-]+/gu, masked);
   result = result.replace(/<[^>\n]*>/g, masked);
   return result;
+}
+/** Find a word at a mouse or keyboard caret, excluding Markdown syntax. */
+export function wordAtProse(text:string,offset:number):{from:number;to:number;word:string}|null {
+  if(offset<0||offset>text.length)return null;
+  const prose=proseOnly(text);
+  const start=prose.lastIndexOf('\n',Math.max(0,offset-1))+1;
+  const end=prose.indexOf('\n',offset);
+  const line=prose.slice(start,end<0?prose.length:end);
+  for(const match of line.matchAll(WORDS)){
+    const from=start+match.index,to=from+match[0].length;
+    if(offset>=from&&offset<=to)return {from,to,word:text.slice(from,to)};
+  }
+  return null;
 }
 /** Optimal string alignment distance, including adjacent transpositions. */
 export function editDistance(a: string,b: string): number {
@@ -81,6 +103,8 @@ function matchCase(source:string,candidate:string):string{
 }
 export class SpellEngine {
   private frequency=new Map<string,number>();
+  private modernWords=new Set<string>();
+  private preferredCase=new Map<string,string>();
   private deletes:Map<string,string[]>|null=null;
   private gramIndex:Map<string,string[]>|null=null;
   private suggestionCache=new Map<string,string[]>();
@@ -89,6 +113,15 @@ export class SpellEngine {
     for(const line of lexicon.split('\n')){
       const space=line.lastIndexOf(' ');
       if(space>0)this.frequency.set(line.slice(0,space),Number(line.slice(space+1))||1);
+    }
+    // The contemporary list is versioned with the plugin, never downloaded at runtime.
+    for(const line of modernLexicon.split(/\r?\n/)){
+      const match=/^([\p{L}][\p{L}\p{N}]*)\s+(\d+)$/u.exec(line.trim());
+      if(!match)continue;
+      const spelling=match[1]!,word=spelling.toLocaleLowerCase('en-US');
+      this.modernWords.add(word);
+      this.frequency.set(word,Math.max(this.frequency.get(word)||0,Number(match[2])));
+      if(spelling!==word)this.preferredCase.set(word,spelling);
     }
     for(const word of SPECIAL)this.frequency.set(word,Math.max(40,this.frequency.get(word)||0));
     this.setIgnored(customWords);
@@ -153,6 +186,13 @@ export class SpellEngine {
         if(editDistance(word,candidate)<=limit)found.add(candidate);
       }
     }
+    // New names and terms can be very different from their misspellings.
+    // Check the small modern supplement separately without growing the 62k-word index.
+    if(word.length>=4)for(const term of this.modernWords){
+      if(Math.abs(term.length-word.length)>4||term[0]!==word[0])continue;
+      const maxDistance=Math.min(5,Math.max(2,Math.ceil(word.length/2)));
+      if(editDistance(word,term)<=maxDistance)found.add(term);
+    }
     // Search specialist vocabulary even when a word has many errors.
     for(const term of SPECIAL)if(Math.abs(term.length-word.length)<=5&&editDistance(word,term)<=6)found.add(term);
     const value=Array.from(found);
@@ -166,6 +206,7 @@ export class SpellEngine {
     const context=(before+' '+after).toLocaleLowerCase();
     const nearby=new Set(context.match(/[a-z]+/g)||[]);
     const inDomain=/marxis|psycho|philosoph|freud|lacan|material|bourgeois|politic|jung|kant/.test(context);
+    const inCurrentAffairs=/gaza|israel|palestin|sinwar|netanyahu|hamas|lebanon|iran|government|president|minister|election|war|news/.test(context);
     const choices=this.candidates(word);
     const nearest=Math.min(...choices.map(candidate=>editDistance(word,candidate)));
     const score=(candidate:string):number=>{
@@ -183,6 +224,7 @@ export class SpellEngine {
           else if(nearest>2&&overlap>=3&&word[0]===candidate[0]&&word.slice(-1)===candidate.slice(-1))result+=65;
         }
       }
+      if(this.modernWords.has(candidate)&&inCurrentAffairs)result+=13;
       if(candidate[0]===word[0])result+=3;
       if(candidate.slice(-3)===word.slice(-3))result+=3;
       for(const [contextWord,linked] of Object.entries(COMMON_PAIRS)){
@@ -191,7 +233,20 @@ export class SpellEngine {
       }
       return result;
     };
-    return choices.sort((a,b)=>score(b)-score(a)).slice(0,Math.max(1,Math.min(10,limit))).map(w=>matchCase(token,w));
+    const ranked=choices.sort((a,b)=>score(b)-score(a));
+    // Explicitly known misspellings outrank incidental shorter common-word matches.
+    const hint=KNOWN_TYPOS[word];
+    if(hint&&this.frequency.has(hint)){
+      const index=ranked.indexOf(hint);
+      if(index>=0)ranked.splice(index,1);
+      ranked.unshift(hint);
+    }
+    return ranked.slice(0,Math.max(1,Math.min(10,limit))).map(w=>{
+      const canonical=this.preferredCase.get(w);
+      if(token===token.toUpperCase())return w.toUpperCase();
+      if(canonical)return canonical;
+      return matchCase(token,w);
+    });
   }
   check(text:string,limit=250):Correction[]{
     const prose=proseOnly(text);

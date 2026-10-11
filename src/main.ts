@@ -4,6 +4,7 @@ import { SpellEngine } from './spelling';
 import { DEFAULT_SETTINGS, SpellSettings, SpellSettingTab } from './settings';
 import { editorSpellcheck, refreshSpellcheck } from './editor';
 import { ReviewModal, SuggestionsModal } from './ui/review';
+import { captureSpellingContextClick, populateSpellingContextMenu } from './ui/context-menu';
 
 export default class ContextSpellcheckPlugin extends Plugin {
   settings!: SpellSettings;
@@ -12,7 +13,7 @@ export default class ContextSpellcheckPlugin extends Plugin {
     this.settings={...DEFAULT_SETTINGS,...((await this.loadData())||{}) as Partial<SpellSettings>};
     this.settings.personalWords=Array.isArray(this.settings.personalWords)?this.settings.personalWords:[];
     this.engine=new SpellEngine(this.settings.personalWords);
-    this.registerEditorExtension(editorSpellcheck(this.engine,this.settings));
+    this.registerEditorExtension([editorSpellcheck(this.engine,this.settings),captureSpellingContextClick()]);
     this.addSettingTab(new SpellSettingTab(this.app,this));
     this.addCommand({
       id:'review-note-spelling',
@@ -25,8 +26,7 @@ export default class ContextSpellcheckPlugin extends Plugin {
       editorCallback:editor=>new SuggestionsModal(this.app,editor,this.engine,word=>this.addWord(word)).open()
     });
     this.registerEvent(this.app.workspace.on('editor-menu',(menu,editor)=>{
-      menu.addItem(item=>item.setTitle('Spelling suggestions').setIcon('spell-check')
-        .onClick(()=>new SuggestionsModal(this.app,editor,this.engine,word=>this.addWord(word)).open()));
+      populateSpellingContextMenu(menu,editor,this.engine,word=>this.addWord(word));
     }));
   }
   async addWord(word:string):Promise<void>{

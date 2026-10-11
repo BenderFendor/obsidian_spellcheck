@@ -1,5 +1,5 @@
 import { App, Editor, Modal, Notice } from 'obsidian';
-import { Correction, SpellEngine } from '../spelling';
+import { Correction, SpellEngine, wordAtProse } from '../spelling';
 import type { SpellSettings } from '../settings';
 import { languageToolCheck } from '../grammar';
 
@@ -97,11 +97,9 @@ export class SuggestionsModal extends Modal {
     this.contentEl.empty();
     this.contentEl.createEl('h2',{text:'Spell suggestions'});
     const text=this.editor.getValue(),pos=this.editor.posToOffset(this.editor.getCursor());
-    const start=Math.max(0,pos-64),end=Math.min(text.length,pos+64),fragment=text.slice(start,end);
-    const match=[...fragment.matchAll(/[\p{L}]+(?:['’][\p{L}]+)*/gu)]
-      .find(m=>start+m.index<=pos&&pos<=start+m.index+m[0].length);
-    if(!match){this.contentEl.createEl('p',{text:'Place the cursor inside a word.'});return;}
-    const from=start+match.index,to=from+match[0].length,word=match[0];
+    const target=wordAtProse(text,pos);
+    if(!target){this.contentEl.createEl('p',{text:'Place the cursor inside a prose word.'});return;}
+    const {from,to,word}=target;
     const suggestions=this.engine.suggest(word,text.slice(Math.max(0,from-80),from),text.slice(to,to+80),10);
     if(!suggestions.length){this.contentEl.createEl('p',{text:'No alternative spellings found for '+word+'.'});return;}
     this.contentEl.createEl('p',{text:'Possible corrections for "'+word+'":'});
