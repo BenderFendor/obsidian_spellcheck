@@ -47,6 +47,19 @@ export function proseOnly(text: string): string {
   result = result.replace(/<[^>\n]*>/g, masked);
   return result;
 }
+/** Find a word at a mouse or keyboard caret, excluding Markdown syntax. */
+export function wordAtProse(text:string,offset:number):{from:number;to:number;word:string}|null {
+  if(offset<0||offset>text.length)return null;
+  const prose=proseOnly(text);
+  const start=prose.lastIndexOf('\n',Math.max(0,offset-1))+1;
+  const end=prose.indexOf('\n',offset);
+  const line=prose.slice(start,end<0?prose.length:end);
+  for(const match of line.matchAll(WORDS)){
+    const from=start+match.index,to=from+match[0].length;
+    if(offset>=from&&offset<=to)return {from,to,word:text.slice(from,to)};
+  }
+  return null;
+}
 /** Optimal string alignment distance, including adjacent transpositions. */
 export function editDistance(a: string,b: string): number {
   const n=a.length,m=b.length;
