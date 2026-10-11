@@ -120,12 +120,17 @@ export class SpellEngine {
       const match=/^([\p{L}][\p{L}\p{N}]*)\s+(\d+)$/u.exec(line.trim());
       if(!match)continue;
       const spelling=match[1]!,word=spelling.toLocaleLowerCase('en-US');
+      const weight=Number(match[2]);
       this.modernWords.add(word);
-      const bucket=word[0]+':'+word.length;
-      const entries=this.modernBuckets.get(bucket);
-      if(entries)entries.push(word);
-      else this.modernBuckets.set(bucket,[word]);
-      this.frequency.set(word,Math.max(this.frequency.get(word)||0,Number(match[2])));
+      this.frequency.set(word,Math.max(this.frequency.get(word)||0,weight));
+      // Wikipedia-only single-title words are valid for recognition, but
+      // too low-confidence to be recommended as corrections for other words.
+      if(weight>=10){
+        const bucket=word[0]+':'+word.length;
+        const entries=this.modernBuckets.get(bucket);
+        if(entries)entries.push(word);
+        else this.modernBuckets.set(bucket,[word]);
+      }
       if(spelling!==word)this.preferredCase.set(word,spelling);
     }
     for(const word of SPECIAL)this.frequency.set(word,Math.max(40,this.frequency.get(word)||0));
