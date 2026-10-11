@@ -29,6 +29,8 @@ class DictionaryBuilderTest(unittest.TestCase):
             words = builder.wiki_words(path, counts, minimum=2)
             self.assertIn("sinwar", words)
             self.assertIn("hamas", words)
+            self.assertEqual(words["qwen"][1], 6)
+            self.assertEqual(words["unrwa"][1], 6)
             self.assertNotIn("netanyahu", words)
             self.assertNotIn("of", words)
             self.assertTrue(words["sinwar"][1] >= 12)
