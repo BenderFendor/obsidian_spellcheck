@@ -34,13 +34,15 @@ export function offlineGrammarCheck(
 ): Correction[] {
   if (!Object.values(rules).some(Boolean) || !text.trim()) return [];
   const prose = proseOnly(text);
-  let processor = unified().use(retextEnglish);
-  if (rules.articles) processor = processor.use(retextIndefiniteArticle);
-  if (rules.repeatedWords) processor = processor.use(retextRepeatedWords);
-  if (rules.redundantAcronyms) processor = processor.use(retextRedundantAcronyms);
-  if (rules.passiveVoice) processor = processor.use(retextPassive);
+  const processor = unified().use(retextEnglish).use(retextStringify);
+  // The unified Processor is mutable before processSync. Avoid reassigning it:
+  // different plugins specialize the generic parser/transformer type.
+  if (rules.articles) processor.use(retextIndefiniteArticle);
+  if (rules.repeatedWords) processor.use(retextRepeatedWords);
+  if (rules.redundantAcronyms) processor.use(retextRedundantAcronyms);
+  if (rules.passiveVoice) processor.use(retextPassive);
   // The serializer completes the processSync pipeline; nothing is rewritten.
-  const file = processor.use(retextStringify).processSync(prose);
+  const file = processor.processSync(prose);
   const issues: Correction[] = [];
   for (const message of file.messages) {
     const place = message.place;
