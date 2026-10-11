@@ -25,14 +25,16 @@ class DictionaryBuilderTest(unittest.TestCase):
                 file.write("Yahya_Sinwar\nMohammed_Sinwar\nBenjamin_Netanyahu\n"
                            "Benjamin_Netanyahu_(politician)\nHamas\nHistory_of_Hamas\n"
                            "Hamas_and_Hezbollah\nList_of_Hamas_members\n"
-                           "Qwen\nUNRWA\n")
+                           "Qwen\nUNRWA\nBluesky_(social_network)\n")
             counts = builder.Counter()
             words = builder.wiki_words(path, counts, minimum=2)
             self.assertIn("sinwar", words)
             self.assertIn("hamas", words)
             self.assertEqual(words["qwen"][1], 6)
             self.assertEqual(words["unrwa"][1], 6)
-            self.assertNotIn("netanyahu", words)
+            self.assertIn("bluesky", words)
+            self.assertGreaterEqual(words["bluesky"][1], 10)
+            self.assertIn("netanyahu", words)
             self.assertNotIn("of", words)
             self.assertTrue(words["sinwar"][1] >= 12)
 
