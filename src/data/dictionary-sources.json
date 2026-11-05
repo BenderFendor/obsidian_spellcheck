@@ -5,13 +5,13 @@
     "sha256": "45a4dd29b86234fbabce26f33272466bb5572db6fdca1470c4f218e6b666a56d"
   },
   "simplewiktionary": {
-    "revision": "2026-09-01",
+    "revision": "2026-10-02",
     "url": "https://kaikki.org/simplewiktionary/raw-wiktextract-data.jsonl.gz",
-    "sha256": "ea4342525a35eb32e70f5d9945398f06d4f6160af25b0c340fc84662d27efcdf"
+    "sha256": "ddcd73f43d23daff9c38510e8f7a63c5a7262dc962f7cce85f105da4c418e79f"
   },
   "wikipedia": {
-    "revision": "20261010",
-    "url": "https://dumps.wikimedia.org/other/pagetitles/20261010/enwiki-20261010-all-titles-in-ns-0.gz",
-    "sha256": "98c6fa3484121c6a9adbadeb9a4c538adcf86fcc948155c0a6c4b2852bfbc2fe"
+    "revision": "20261104",
+    "url": "https://dumps.wikimedia.org/other/pagetitles/20261104/enwiki-20261104-all-titles-in-ns-0.gz",
+    "sha256": "9b1ce26ea5c2796d01fc09ec304850b5c307424f7179104dc1e227c9d3f0550b"
   }
 }
